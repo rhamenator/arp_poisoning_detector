@@ -1,4 +1,4 @@
-# simple_arp_poisoning_detector.py
+# arp_poisoning_detector.py
 import subprocess
 import re
 
@@ -15,6 +15,7 @@ def parse_arp_table(arp_output):
 
 def check_for_arp_poisoning(arp_entries):
     ip_mac_map = {}
+    arp_posioning_detected = False
     for ip, mac, type in arp_entries:
         network_id = type
         interface_ip = ip
@@ -32,9 +33,11 @@ def check_for_arp_poisoning(arp_entries):
                 print(f"Warning: Potential ARP poisoning detected for IP {ip}!")
                 print(f"MAC addresses: {ip_mac_map[ip]} and {mac}")
                 print(f"Interface IP: {interface_ip} Network ID: {network_id}")
+                arp_posioning_detected = True
         else:
             ip_mac_map[ip] = mac
-
+    if not arp_posioning_detected: print("Info: ARP poisoning not detected.")
+    
 if __name__ == "__main__":
     arp_output = get_arp_table()
     arp_entries = parse_arp_table(arp_output)
