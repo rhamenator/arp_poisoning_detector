@@ -1,11 +1,10 @@
+# simple_arp_poisoning_detector.py
 import subprocess
 import re
-import json
 
 def get_arp_table():
     # Run the arp -a command
     result = subprocess.run(['arp', '-a'], capture_output=True, text=True)
-    print(result.stdout)  # Print the ARP table
     return result.stdout
 
 def parse_arp_table(arp_output):
@@ -16,22 +15,25 @@ def parse_arp_table(arp_output):
 
 def check_for_arp_poisoning(arp_entries):
     ip_mac_map = {}
-    arp_poisoning_detected = False
-    for ip, _, mac in arp_entries:
+    for ip, mac, type in arp_entries:
+        network_id = type
+        interface_ip = ip
+        mac_regex = re.compile(r'^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$')
+        if not type.startswith('Ox'):
+            # This line in arp_entries is not an interface
+            network_id = None
+            interface_ip = None
+        if not mac_regex.match(mac):
+            continue
+        # else:
+        #     print(mac, ip)
         if ip in ip_mac_map:
             if ip_mac_map[ip] != mac:
                 print(f"Warning: Potential ARP poisoning detected for IP {ip}!")
                 print(f"MAC addresses: {ip_mac_map[ip]} and {mac}")
-                arp_poisoning_detected = True
+                print(f"Interface IP: {interface_ip} Network ID: {network_id}")
         else:
             ip_mac_map[ip] = mac
-
-    # Save the ip_mac_map to a JSON file
-    with open('ip_mac_map.json', 'w') as json_file:
-        json.dump(ip_mac_map, json_file, indent=4)
-
-    if not arp_poisoning_detected:
-        print("No ARP poisoning detected.")
 
 if __name__ == "__main__":
     arp_output = get_arp_table()
